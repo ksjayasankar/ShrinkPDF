@@ -1,4 +1,4 @@
-# ShrinkScribe 🖋️
+# ShrinkPDF 🖋️
 
 A simple, powerful, and cross-platform command-line tool that leverages Ghostscript to offer best-in-class PDF compression. Say goodbye to privacy-invasive online tools!
 
@@ -6,7 +6,7 @@ A simple, powerful, and cross-platform command-line tool that leverages Ghostscr
 You have a massive PDF file (1.5GB!) that you need to email or upload, but online compression tools are slow, compromise your privacy by uploading your data, or have restrictive file size limits.
 
 ## The Solution
-`ShrinkScribe` uses the power of Ghostscript right on your own machine to safely and effectively compress your PDFs. You get full control over the quality and compression level.
+`ShrinkPDF` uses the power of Ghostscript right on your own machine to safely and effectively compress your PDFs. You get full control over the quality and compression level.
 
 ## Features
 -   **Cross-Platform:** Works on Windows, macOS, and Linux.
@@ -23,8 +23,8 @@ You MUST have **Ghostscript** installed and accessible in your system's PATH.
 ## Installation
 1.  Clone this repository:
     ```bash
-    git clone [https://github.com/your-username/ShrinkScribe.git](https://github.com/your-username/ShrinkScribe.git)
-    cd ShrinkScribe
+    git clone [https://github.com/your-username/ShrinkPDF.git](https://github.com/your-username/ShrinkPDF.git)
+    cd ShrinkPDF
     ```
 2.  (Optional) It's good practice to use a virtual environment:
     ```bash
