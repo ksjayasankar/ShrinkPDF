@@ -3,48 +3,61 @@ import subprocess
 import os
 import argparse
 
+# Define quality presets based on Ghostscript's capabilities.
+# We include standard presets and our own advanced, custom ones.
 PRESETS = {
     'screen': {
-        'desc': 'Lowest quality, smallest size (72 dpi).',
+        'desc': 'Lowest quality, smallest size (72 dpi). Good for screen viewing.',
         'params': ['-dPDFSETTINGS=/screen']
     },
     'ebook': {
-        'desc': 'Medium quality, medium size (150 dpi).',
+        'desc': 'Medium quality, medium size (150 dpi). A good balance.',
         'params': ['-dPDFSETTINGS=/ebook']
     },
     'printer': {
-        'desc': 'High quality (300 dpi).',
+        'desc': 'High quality for printing (300 dpi). Larger file size.',
         'params': ['-dPDFSETTINGS=/printer']
     },
     'prepress': {
-        'desc': 'Highest quality, for professional printing (300 dpi).',
+        'desc': 'Highest quality, for professional printing, color preservation.',
         'params': ['-dPDFSETTINGS=/prepress']
     },
-    'default': {
-        'desc': 'A good balance between size and quality.',
-        'params': ['-dPDFSETTINGS=/default']
-    },
-    'custom': {
-        'desc': 'Custom settings for advanced users.',
+    'architectural': {
+        'desc': 'Highly optimized for hybrid files like architectural plans. Aggressively compresses images while preserving vector quality.',
         'params': [
-            '-dCompatibilityLevel=1.7',
+            # ==> GENERAL & PRE-PROCESSING PARAMETERS
+            '-dCompatibilityLevel=1.6',
+            '-dDetectDuplicateImages=true',
+            '-dCompressFonts=true',
+            '-dSubsetFonts=true',
+            '-sColorConversionStrategy=sRGB',
+            '-dProcessColorModel=/DeviceRGB',
+            
+            # ==> RASTER IMAGE DOWNSAMPLING
             '-dDownsampleColorImages=true',
             '-dDownsampleGrayImages=true',
             '-dDownsampleMonoImages=true',
             '-dColorImageResolution=150',
             '-dGrayImageResolution=150',
             '-dMonoImageResolution=300',
-            '-dSubsetFonts=true',
-            '-dCompressFonts=true',
-            '-dConvertCMYKImagesToRGB=true',
-            '-c', '.setdistillerparams << /ColorImageDict << /QFactor 1.5 /Blend 1 >> >> setdistillerparams'
+            
+            # ==> ALGORITHM SEGREGATION AND APPLICATION
+            # This is a single, multi-line argument passed to Ghostscript's -c option
+            (
+                '-c', 
+                ".setdistillerparams << "
+                "/ColorImageDict << /QFactor 2.0 /Blend 1 /HSamples [2 1 1 2] /VSamples [2 1 1 2] /ImageType 1 /DCTEncode >> "
+                "/GrayImageDict << /QFactor 2.0 /Blend 1 /HSamples [2 1 1 2] /VSamples [2 1 1 2] /ImageType 1 /DCTEncode >> "
+                "/MonoImageDict << /K -1 /ImageType 3 /JBIG2Encode >> "
+                ">> setdistillerparams"
+            )
         ]
     }
 }
 
 def compress_pdf(input_path, output_path, quality='ebook'):
     """
-    Uses Ghostscript to compress a PDF file.
+    Uses Ghostscript to compress a PDF file based on a selected quality preset.
     """
     gs_command = 'gswin64c' if sys.platform == 'win32' else 'gs'
     
@@ -61,18 +74,36 @@ def compress_pdf(input_path, output_path, quality='ebook'):
     print(f"Using quality preset: '{quality}' - {PRESETS[quality]['desc']}")
 
     try:
+        # Build the command list
         command = [
             gs_command,
             '-sDEVICE=pdfwrite',
             '-dNOPAUSE',
             '-dBATCH',
             '-dQUIET',
-            *PRESETS[quality]['params'],
             f'-sOutputFile={output_path}',
-            input_path
         ]
+        
+        # Add preset parameters. Note the special handling for the tuple in 'architectural'
+        preset_params = PRESETS[quality]['params']
+        for param in preset_params:
+            if isinstance(param, tuple):
+                command.extend(param)
+            else:
+                command.append(param)
+        
+        command.append(input_path)
 
-        subprocess.run(command, check=True)
+        # Execute the command
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+
+        if process.returncode != 0:
+            print("--- Ghostscript Error ---")
+            print("STDOUT:", stdout.decode(errors='ignore'))
+            print("STDERR:", stderr.decode(errors='ignore'))
+            print("-------------------------")
+            return
         
         original_size = os.path.getsize(input_path) / (1024 * 1024)
         compressed_size = os.path.getsize(output_path) / (1024 * 1024)
@@ -87,8 +118,6 @@ def compress_pdf(input_path, output_path, quality='ebook'):
     except FileNotFoundError:
         print(f"Error: '{gs_command}' not found.")
         print("Please ensure Ghostscript is installed and in your system's PATH.")
-    except subprocess.CalledProcessError as e:
-        print(f"Ghostscript failed with error: {e}")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
